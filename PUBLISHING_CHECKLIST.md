@@ -9,6 +9,7 @@ Use this folder as the source for the public repository.
 - `docs/` contains no internal organization details
 - `docs/VALIDATION-MATRIX.md` reflects the currently observed behavior and does not overstate unverified claims
 - `docs/LOCAL-PRACTICAL-TEST-REPORT.md` contains sanitized evidence only, with no raw workstation names, emails, or internal IP addresses
+- dated validation reports in `docs/VALIDATION-REPORT-*.md` are sanitized and use placeholders for internal addresses and proxy hosts
 - `examples/` use generic endpoints and payloads
 - `local-only-*.patch` artifacts are ignored and not staged
 - `tests/` pass from inside this folder

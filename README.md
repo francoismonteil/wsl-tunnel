@@ -46,6 +46,7 @@ Before adopting the workaround, validate your workstation behavior with:
 - [docs/VALIDATION-MATRIX.md](docs/VALIDATION-MATRIX.md)
 - [docs/LOCAL-PRACTICAL-TESTS.md](docs/LOCAL-PRACTICAL-TESTS.md)
 - [docs/LOCAL-PRACTICAL-TEST-REPORT.md](docs/LOCAL-PRACTICAL-TEST-REPORT.md)
+- [docs/VALIDATION-REPORT-2026-04-05.md](docs/VALIDATION-REPORT-2026-04-05.md)
 
 That document captures:
 
@@ -132,6 +133,7 @@ You can select several services and start them in one pass.
 - [docs/VALIDATION-MATRIX.md](docs/VALIDATION-MATRIX.md) — tested configurations, flows, and observed limitations
 - [docs/LOCAL-PRACTICAL-TESTS.md](docs/LOCAL-PRACTICAL-TESTS.md) — step-by-step validation protocol for a real workstation
 - [docs/LOCAL-PRACTICAL-TEST-REPORT.md](docs/LOCAL-PRACTICAL-TEST-REPORT.md) — sanitized field report from one constrained workstation
+- [docs/VALIDATION-REPORT-2026-04-05.md](docs/VALIDATION-REPORT-2026-04-05.md) — detailed sanitized Campaign A report tied to the validation plan
 
 ## License
 
