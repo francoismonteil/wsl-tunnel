@@ -43,6 +43,7 @@ Do not use this as the first answer if your environment already works with nativ
 Before adopting the workaround, validate your workstation behavior with:
 
 - [docs/VALIDATION-PLAN.md](docs/VALIDATION-PLAN.md)
+- [docs/SOLUTION-PLAN.md](docs/SOLUTION-PLAN.md)
 - [docs/VALIDATION-MATRIX.md](docs/VALIDATION-MATRIX.md)
 - [docs/LOCAL-PRACTICAL-TESTS.md](docs/LOCAL-PRACTICAL-TESTS.md)
 - [docs/LOCAL-PRACTICAL-TEST-REPORT.md](docs/LOCAL-PRACTICAL-TEST-REPORT.md)
@@ -51,6 +52,7 @@ Before adopting the workaround, validate your workstation behavior with:
 That document captures:
 
 - the broader test campaign
+- the current solution search
 - tested configurations
 - communication paths
 - observed limitations
@@ -130,6 +132,7 @@ You can select several services and start them in one pass.
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — runtime model and state discovery
 - [docs/CONCEPT.md](docs/CONCEPT.md) — network rationale and tradeoffs
 - [docs/VALIDATION-PLAN.md](docs/VALIDATION-PLAN.md) — broader validation campaign for representative workstation testing
+- [docs/SOLUTION-PLAN.md](docs/SOLUTION-PLAN.md) — experiment plan for turning the validated limitation into a practical solution
 - [docs/VALIDATION-MATRIX.md](docs/VALIDATION-MATRIX.md) — tested configurations, flows, and observed limitations
 - [docs/LOCAL-PRACTICAL-TESTS.md](docs/LOCAL-PRACTICAL-TESTS.md) — step-by-step validation protocol for a real workstation
 - [docs/LOCAL-PRACTICAL-TEST-REPORT.md](docs/LOCAL-PRACTICAL-TEST-REPORT.md) — sanitized field report from one constrained workstation
