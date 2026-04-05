@@ -11,6 +11,7 @@ Before opening an issue, gather:
 - the exact command you ran
 - the full error output
 - the output of `.\wsl-tunnel.ps1 list` or `status` when relevant
+- the relevant subset of the validation plan in `docs/VALIDATION-PLAN.md` if your issue is about networking behavior
 
 ## Pull Requests
 
