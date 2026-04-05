@@ -178,6 +178,34 @@ Invoke-Test -Name "Stale marker files are cleaned when no live process exists" -
     Assert-True (-not (Test-Path -LiteralPath (Join-Path $markerDir "api.json"))) "Expected stale api marker to be removed."
 }
 
+Invoke-Test -Name "down stops active tunnel without PID variable collision" -ScriptBlock {
+    Write-JsonFile -Path $processFixture -Data @(
+        @{ ProcessId = 101; CommandLine = "ssh -N -R 18443:localhost:8443 wsl-localhost" }
+    )
+    Write-JsonFile -Path $portFixture -Data @{ listeningPorts = @(8443) }
+
+    $script:StoppedProcessIds = @()
+    function Stop-Process {
+        param(
+            [int]$Id,
+            [switch]$Force
+        )
+
+        $script:StoppedProcessIds += $Id
+    }
+
+    $catalog = @(Get-WslTunnelCatalog)
+    $service = Resolve-WslTunnelService -Name "api" -Catalog $catalog
+    $result = Stop-WslTunnelService -Service $service
+
+    Remove-Item Function:\Stop-Process -ErrorAction SilentlyContinue
+
+    Assert-True $result.WasActive "Expected active tunnel to be stopped."
+    Assert-True ($result.StoppedPids.Count -eq 1) "Expected one stopped PID."
+    Assert-True ($result.StoppedPids[0] -eq 101) "Expected stopped PID 101."
+    Assert-True ($script:StoppedProcessIds[0] -eq 101) "Expected Stop-Process to receive PID 101."
+}
+
 Invoke-Test -Name "list command works with fixtures" -ScriptBlock {
     Write-JsonFile -Path $processFixture -Data @()
     Write-JsonFile -Path $portFixture -Data @{ listeningPorts = @(8443) }

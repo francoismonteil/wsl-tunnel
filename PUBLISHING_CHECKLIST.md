@@ -8,7 +8,9 @@ Use this folder as the source for the public repository.
 - `catalog/tunnels.json` contains only safe example service names and ports
 - `docs/` contains no internal organization details
 - `docs/VALIDATION-MATRIX.md` reflects the currently observed behavior and does not overstate unverified claims
+- `docs/LOCAL-PRACTICAL-TEST-REPORT.md` contains sanitized evidence only, with no raw workstation names, emails, or internal IP addresses
 - `examples/` use generic endpoints and payloads
+- `local-only-*.patch` artifacts are ignored and not staged
 - `tests/` pass from inside this folder
 
 ## Validation

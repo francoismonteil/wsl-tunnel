@@ -55,6 +55,24 @@ function Ensure-WslTunnelDirectory {
     }
 }
 
+function ConvertFrom-WslTunnelJson {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Content,
+
+        [int]$Depth = 10
+    )
+
+    $command = Get-Command ConvertFrom-Json -ErrorAction Stop
+    $hasDepth = $command.Parameters.ContainsKey("Depth")
+
+    if ($hasDepth) {
+        return $Content | ConvertFrom-Json -Depth $Depth
+    }
+
+    return $Content | ConvertFrom-Json
+}
+
 function Get-WslTunnelCatalog {
     param(
         [string]$Path = (Get-WslTunnelCatalogPath)
@@ -64,7 +82,7 @@ function Get-WslTunnelCatalog {
         throw "Catalog not found: $Path"
     }
 
-    $document = Get-Content -LiteralPath $Path -Raw | ConvertFrom-Json -Depth 10
+    $document = ConvertFrom-WslTunnelJson -Content (Get-Content -LiteralPath $Path -Raw) -Depth 10
     if (-not $document.services) {
         throw "Catalog '$Path' must contain a 'services' array."
     }
@@ -165,7 +183,7 @@ function Get-WslTunnelPortFixture {
         throw "Port fixture not found: $($env:WSL_TUNNEL_PORT_FIXTURE)"
     }
 
-    $fixture = Get-Content -LiteralPath $env:WSL_TUNNEL_PORT_FIXTURE -Raw | ConvertFrom-Json -Depth 10
+    $fixture = ConvertFrom-WslTunnelJson -Content (Get-Content -LiteralPath $env:WSL_TUNNEL_PORT_FIXTURE -Raw) -Depth 10
     if ($fixture.PSObject.Properties["listeningPorts"]) {
         return @($fixture.listeningPorts | ForEach-Object { [int]$_ })
     }
@@ -196,7 +214,7 @@ function Get-WslTunnelProcessSource {
             throw "Process fixture not found: $($env:WSL_TUNNEL_PROCESS_FIXTURE)"
         }
 
-        return Get-Content -LiteralPath $env:WSL_TUNNEL_PROCESS_FIXTURE -Raw | ConvertFrom-Json -Depth 10
+        return ConvertFrom-WslTunnelJson -Content (Get-Content -LiteralPath $env:WSL_TUNNEL_PROCESS_FIXTURE -Raw) -Depth 10
     }
 
     return Get-CimInstance Win32_Process |
@@ -248,7 +266,7 @@ function Get-WslTunnelMarkers {
     $markers = New-Object System.Collections.Generic.List[object]
     foreach ($file in Get-ChildItem -LiteralPath $markerRoot -Filter *.json -File) {
         try {
-            $marker = Get-Content -LiteralPath $file.FullName -Raw | ConvertFrom-Json -Depth 10
+            $marker = ConvertFrom-WslTunnelJson -Content (Get-Content -LiteralPath $file.FullName -Raw) -Depth 10
             $markers.Add([PSCustomObject]@{
                 Path = $file.FullName
                 serviceName = [string]$marker.serviceName
@@ -360,7 +378,7 @@ function Get-WslTunnelSelectionFixture {
         throw "Selection fixture not found: $($env:WSL_TUNNEL_SELECTION_FIXTURE)"
     }
 
-    $fixture = Get-Content -LiteralPath $env:WSL_TUNNEL_SELECTION_FIXTURE -Raw | ConvertFrom-Json -Depth 10
+    $fixture = ConvertFrom-WslTunnelJson -Content (Get-Content -LiteralPath $env:WSL_TUNNEL_SELECTION_FIXTURE -Raw) -Depth 10
     if ($fixture -is [string]) {
         return @([string]$fixture)
     }
@@ -665,8 +683,8 @@ function Stop-WslTunnelService {
         }
     }
 
-    foreach ($pid in $state.ProcessIds) {
-        Stop-Process -Id $pid -Force
+    foreach ($processId in $state.ProcessIds) {
+        Stop-Process -Id $processId -Force
     }
 
     Remove-WslTunnelMarker -ServiceName $Service.name

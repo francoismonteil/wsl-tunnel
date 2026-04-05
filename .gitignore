@@ -1,0 +1,14 @@
+.git/
+*.ps1.bak
+*.log
+*.tmp
+.vscode/
+.idea/
+*.pyc
+__pycache__/
+node_modules/
+*.swp
+*~
+.DS_Store
+thumbs.db
+local-only-*.patch
