@@ -1,0 +1,36 @@
+{
+  "services": [
+    {
+      "name": "api",
+      "description": "Primary HTTPS API hosted on Windows.",
+      "windowsPort": 8443,
+      "wslPort": 18443,
+      "protocol": "https",
+      "note": "Use curl -k during local certificate bootstrap."
+    },
+    {
+      "name": "jobs",
+      "description": "Background jobs or scheduler HTTP endpoint.",
+      "windowsPort": 8080,
+      "wslPort": 18080,
+      "protocol": "http",
+      "note": "Typical choice for workers and cron-like services."
+    },
+    {
+      "name": "redis",
+      "description": "Redis-compatible cache service on Windows.",
+      "windowsPort": 6379,
+      "wslPort": 16379,
+      "protocol": "tcp",
+      "note": "Test with redis-cli or nc from WSL."
+    },
+    {
+      "name": "postgres",
+      "description": "PostgreSQL database service on Windows.",
+      "windowsPort": 5432,
+      "wslPort": 15432,
+      "protocol": "tcp",
+      "note": "Use psql -h localhost -p 15432 from WSL."
+    }
+  ]
+}
