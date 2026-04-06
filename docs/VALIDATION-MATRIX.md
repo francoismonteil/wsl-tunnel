@@ -1,356 +1,160 @@
 # Validation Matrix
 
-This document captures the test cases used to validate whether WSL2 networking modes are sufficient on their own, and where they fall short for real development workflows.
+This document consolidates the validated behavior recorded in:
 
-The goal is not to prove a theory in advance. The goal is to record what actually works and what does not on constrained workstations.
+- `public/docs/CANDIDATE-SOLUTION-VALIDATION-REPORT-2026-04-06.md`
+- `public/docs/MIRRORED-MODE-VALIDATION-REPORT-2026-04-06.md`
 
-## What We Are Validating
+The goal is to answer one practical question for constrained enterprise workstations:
 
-We care about the concrete paths that matter for day-to-day development:
+> Which mechanism allows which concrete development flow, exactly?
 
-1. Windows -> native process running in WSL2
-2. Windows -> Docker container running inside WSL2
-3. WSL2 native process -> Docker published port inside WSL2
-4. WSL2 native process -> service hosted on Windows via `localhost`
-5. WSL2 native process -> service hosted on Windows via the Windows host IP
-6. Docker container inside WSL2 -> native WSL2 service
-7. Docker container inside WSL2 -> service hosted on Windows
-8. WSL2 native process -> Windows-hosted service through the SSH tunnel workaround
-9. Docker container inside WSL2 -> tunneled endpoint exposed inside WSL2
-
-If a given WSL2 networking mode solves only some of these paths, then it does not fully solve the local development problem.
-
-## Test Fixtures
-
-Use simple, reproducible fixtures before testing any business application:
-
-- Windows-hosted HTTPS service on `8443`
-- Native WSL2 HTTP server on `4200`
-- Docker container published as `8080:80` with `nginx:alpine`
-- Guided tunnel from `18443` in WSL2 back to Windows `8443`
-- Optional realistic services such as Elasticsearch after the trivial fixtures are validated
-
-## Reference Commands
-
-### Native WSL2 HTTP server
-
-```bash
-python3 -m http.server 4200 --bind 0.0.0.0
-```
-
-### Simple container in WSL2
-
-```bash
-docker run --rm -d --name test-nginx -p 8080:80 nginx:alpine
-```
-
-### Docker port check
-
-```bash
-docker ps
-docker port test-nginx
-```
-
-Expected mapping:
-
-```text
-80/tcp -> 0.0.0.0:8080
-```
-
-### Windows access checks
-
-```powershell
-curl.exe --connect-timeout 8 --max-time 20 http://localhost:4200
-curl.exe --connect-timeout 8 --max-time 20 http://localhost:8080
-curl.exe -vk --connect-timeout 8 --max-time 20 https://localhost:8443
-```
-
-### WSL2 access checks
-
-```bash
-curl --connect-timeout 8 --max-time 20 http://localhost:4200
-curl --connect-timeout 8 --max-time 20 http://localhost:8080
-curl -vk --connect-timeout 8 --max-time 20 https://localhost:8443
-curl -vk --connect-timeout 8 --max-time 20 https://<windows-host-ip>:8443
-curl -vk --connect-timeout 8 --max-time 20 https://localhost:18443
-```
-
-### Container access checks
-
-```bash
-docker exec test-nginx sh -lc "apk add --no-cache curl >/dev/null 2>&1 || true; curl --noproxy '*' -vk --connect-timeout 8 --max-time 20 https://<target>"
-```
-
-## Configurations Under Test
-
-### Configuration A
-
-```ini
-[wsl2]
-networkingMode=NAT
-localhostForwarding=true
-```
-
-This is the NAT baseline used to preserve Windows -> WSL2 and Windows -> Docker localhost flows where possible.
-
-### Configuration B
-
-```ini
-[wsl2]
-networkingMode=mirrored
-```
-
-This is the mirrored networking mode.
-
-### Configuration C
-
-```ini
-[wsl2]
-networkingMode=NAT
-localhostForwarding=true
-```
-
-Plus the guided SSH reverse tunnel from this repository for the Windows service under test.
-
-This is the "keep NAT working for Docker, then patch the missing Windows dependency path with an explicit tunnel" configuration.
-
-## Observed Results
-
-The table below records only what has already been explicitly validated.
+## Reading Guide
 
 Legend:
 
 - `OK` = explicitly validated and works
 - `KO` = explicitly validated and fails
-- `NR` = not yet recorded on the constrained workstation
-- `N/A` = not applicable for that configuration block
+- `Partial` = transport works but application constraints still block the end result
+- `Conditional` = works only with explicit additional constraints
+- `N/A` = not relevant for that configuration
 
-| Flow | NAT + `localhostForwarding=true` | Mirrored | NAT + tunnel workaround | Notes |
-|------|----------------------------------|----------|-------------------------|-------|
-| Windows -> native WSL2 service | NR | OK | N/A | Native WSL2 `4200` was explicitly recorded in mirrored mode. |
-| Windows -> Docker published port | OK | KO | N/A | `nginx:alpine` published as `8080:80` is reachable from Windows in NAT, but not in mirrored mode. |
-| WSL2 -> Docker published port | OK | OK | N/A | The published container remains reachable from inside WSL2 in both tested modes. |
-| Windows -> Windows service on `8443` | OK | N/A | N/A | Baseline health check of the Windows-hosted dependency. |
-| WSL2 -> Windows service via `localhost:8443` | KO | OK | N/A | NAT fails on localhost. Mirrored succeeds on localhost. |
-| WSL2 -> Windows service via Windows host IP | KO | KO | N/A | The tested Windows host IP path failed in both recorded modes. |
-| Container -> native WSL2 service | NR | OK | N/A | Recorded from the test container to the native WSL2 `4200` service in mirrored mode. |
-| Container -> Windows service on `8443` | KO | KO | N/A | Direct container access to the Windows service failed in both tested modes. |
-| WSL2 -> Windows service via tunnel endpoint | N/A | N/A | OK | `localhost:18443` restored the missing native WSL2 -> Windows dependency path. |
-| Container -> tunneled endpoint | N/A | N/A | KO | Tested routes to `18443` from the container were unsuccessful. |
+Enterprise constraints observed during the campaigns:
 
-## Sanitized Field Record
+- Docker runs as Linux Docker Engine inside WSL2, not Docker Desktop
+- corporate proxy variables are injected into containers
+- private IPs are not covered by default `NO_PROXY`
+- some Windows listeners are restricted to `localhost` only
 
-The block below summarizes one constrained workstation without publishing raw machine identifiers, organization-specific data, or internal IP addresses.
+## Executive Matrix
 
-Placeholder values:
+| Configuration / Mechanism | Windows -> native WSL2 service | Windows -> Docker published port | WSL2 -> Windows via `localhost` | Bridge container -> Windows service | What it is good for | Main blocking constraint |
+|---|---|---|---|---|---|---|
+| NAT + `localhostForwarding=true` | `OK` | `OK` | `KO` | `KO` | Standard local dev where Windows must reach Docker in WSL2 | Windows dependency remains unreachable from WSL2 and containers |
+| NAT + SSH tunnel | `OK` | `OK` | `OK` via `localhost:18443` | `KO` | Native WSL2 workloads that must consume a Windows-local service | Tunnel listener stays loopback-only in WSL2 |
+| NAT + SSH tunnel + `socat` relay + proxy bypass | `OK` | `OK` | `OK` via `localhost:18443` | `OK` | Full bridge-container access to a Windows dependency in constrained enterprise setup | Requires relay and explicit proxy management |
+| Mirrored | `OK` | `KO` | `OK` | `KO` | Native Windows <-> WSL2 workflows over shared loopback | Windows -> Docker published ports break structurally |
+| Mirrored + container `--network host` | `OK` | `KO` | `OK` | `OK` via container `localhost` | Single-container cases where a container must consume Windows as if it were native WSL2 | Loses bridge isolation and published-port ergonomics |
+| Mirrored + direct `socat` relay to Windows loopback | `OK` | `KO` | `OK` | `Partial` | Proof that container -> Windows transport can exist without SSH tunnel | Windows service must accept non-`localhost` hostnames / wildcard binding |
 
-- `<nat-gateway-ip>` = the host gateway IP seen from WSL2 in NAT mode
-- `<windows-ip-a>` and `<windows-ip-b>` = Windows IPv4 addresses tested in mirrored mode
-- `<wsl-ip>` = the WSL2 address chosen for container -> WSL2 checks
+## Capability Table By Flow
 
-### Configuration A: NAT baseline
+| Flow | NAT | NAT + tunnel | NAT + tunnel + relay | Mirrored | Mirrored + host-network container | Mirrored + direct relay |
+|---|---|---|---|---|---|---|
+| Windows -> native WSL2 service | `OK` | `OK` | `OK` | `OK` | `OK` | `OK` |
+| Windows -> Docker published port | `OK` | `OK` | `OK` | `KO` | `KO` | `KO` |
+| WSL2 -> Docker published port | `OK` | `OK` | `OK` | `OK` | `OK` | `OK` |
+| WSL2 -> Windows service via `localhost` | `KO` | `OK` | `OK` | `OK` | `OK` | `OK` |
+| WSL2 -> Windows service via Windows IP | `KO` | `NR` | `NR` | `KO` | `KO` | `KO` |
+| Bridge container -> native WSL2 service | `OK` | `OK` | `OK` | `OK` | `N/A` | `OK` |
+| Bridge container -> Windows service | `KO` | `KO` | `OK` | `KO` | `N/A` | `Partial` |
+| Bridge container -> tunneled endpoint | `N/A` | `KO` | `OK` | `KO` | `N/A` | `N/A` |
+| Host-network container -> Windows via `localhost` | `OK` | `OK` | `OK` | `OK` | `OK` | `OK` |
 
-```text
-Flows:
-- Windows -> Docker published port: OK
-- WSL -> Docker published port: OK
-- WSL -> Windows localhost service: KO
-- WSL -> Windows host IP service: KO
-- Container -> Windows service: KO
+Notes:
 
-Evidence:
-- Windows service health check: curl.exe -vk --connect-timeout 8 --max-time 20 https://localhost:8443
-- Observed response: HTTP 401 Unauthorized
-- Docker test container start: wsl docker run --rm -d --name test-nginx -p 8080:80 nginx:alpine
-- Windows -> Docker published port: curl.exe --connect-timeout 8 --max-time 20 http://localhost:8080
-- Observed response: default nginx welcome page
-- WSL -> Docker published port: wsl curl --connect-timeout 8 --max-time 20 http://localhost:8080
-- Observed response: default nginx welcome page
-- WSL localhost path: wsl curl -vk --connect-timeout 8 --max-time 20 https://localhost:8443
-- Observed response: connection refused to 127.0.0.1 and ::1
-- WSL host IP path: wsl curl -vk --connect-timeout 8 --max-time 20 https://<nat-gateway-ip>:8443
-- Observed response: connection timeout
-- Container -> Windows service path: wsl docker exec test-nginx sh -lc "curl --noproxy '*' -vk --connect-timeout 8 --max-time 20 https://<nat-gateway-ip>:8443"
-- Observed response: connection timeout
-```
+- `NAT + tunnel + relay` means:
+  `container -> <bridge-gateway-ip>:28443 -> socat -> 127.0.0.1:18443 -> SSH reverse tunnel -> Windows localhost:8443`
+- `Mirrored + direct relay` means:
+  `container -> <docker-bridge-ip>:28443 -> socat in WSL2 -> 127.0.0.1:8443 -> Windows localhost:8443`
+- In mirrored mode, the direct relay proved TCP connectivity, but HTTP failed with `400 Bad Request - Invalid Hostname` because the Windows test service was bound to `http://localhost:8443/`
 
-### Configuration B: NAT + tunnel workaround
+## What Each Mechanism Really Enables
 
-```text
-Flows:
-- WSL -> Windows service via tunnel endpoint: OK
-- Container -> tunneled endpoint: KO
+| Mechanism | Concrete capability enabled | What it does not solve | Enterprise-specific condition |
+|---|---|---|---|
+| NAT + `localhostForwarding` | Lets Windows tools access WSL2 native services and Docker published ports on `localhost` | Does not let WSL2 or bridge containers consume a Windows-local dependency | None beyond standard WSL NAT behavior |
+| SSH reverse tunnel (`wsl-tunnel.ps1`) | Recreates a WSL2-local endpoint for a Windows-local service | Does not expose that endpoint to bridge containers by itself | WSL2 must stay alive; sshd/tunnel stability matters |
+| `socat` relay in WSL2 | Exposes a loopback-only endpoint to bridge containers on `0.0.0.0:<relay-port>` | Does not fix proxy interception or Windows app-layer hostname restrictions | Must bypass proxy for RFC1918 / relay IPs |
+| Mirrored networking | Gives shared-loopback ergonomics between native Windows and native WSL2 processes | Does not preserve Windows -> Docker published ports with Linux Docker Engine in WSL2 | Structural limitation with Docker published-port path |
+| Docker `--network host` in WSL2 | Makes a container behave like a native WSL2 process for `localhost` access | Does not help Windows reach Docker published ports; reduces isolation | Only suitable when host-network tradeoffs are acceptable |
+| Windows service wildcard bind (`http://+:8443/` or equivalent) | Makes mirrored relay and non-`localhost` access viable at application level | Does not itself create the container routing path | Often requires admin rights or server reconfiguration |
+| Proxy bypass (`--noproxy '*'` or extended `NO_PROXY`) | Prevents enterprise proxy from hijacking private-IP container traffic | Does not fix routing by itself | Mandatory for container -> relay/private-IP access |
 
-Evidence:
-- SSH prerequisite: ssh wsl-localhost "echo Hello from WSL"
-- Observed response: Hello from WSL
-- Tunnel start: .\wsl-tunnel.ps1 up api
-- Observed response: Tunnel 'api' is active. WSL localhost:18443 -> Windows localhost:8443
-- WSL tunneled path: wsl curl -vk --connect-timeout 8 --max-time 20 https://localhost:18443
-- Observed response: HTTP 401 Unauthorized
-- Listener check in WSL: wsl sh -lc "ss -ltn | grep 18443"
-- Observed response: listeners only on 127.0.0.1:18443 and [::1]:18443
-- Container -> tunneled endpoint via host.docker.internal: name resolution failed or timed out
-- Container -> tunneled endpoint via <wsl-ip>:18443: connection refused
-```
+## Decision Table
 
-### Configuration C: mirrored
+| Need | Best validated option | Why |
+|---|---|---|
+| Keep Windows -> Docker on `localhost` working | NAT | This is the only fully validated mode where Windows still reaches Docker published ports reliably |
+| Let native WSL2 processes consume a Windows-local service | Mirrored or NAT + tunnel | Mirrored is simpler for native flows; NAT + tunnel preserves Docker ergonomics |
+| Let bridge-mode containers consume a Windows-local service on a constrained workstation | NAT + tunnel + relay + proxy bypass | This is the only fully validated end-to-end bridge-container solution in the recorded enterprise setup |
+| Let a single container consume Windows quickly, without relay | Mirrored + `--network host` | Validated and simple, but only if host-network constraints are acceptable |
+| Use mirrored as the primary mode for this repository | Not recommended | It breaks Windows -> Docker published ports, which is a core daily workflow |
 
-```text
-Flows:
-- Windows -> native WSL2 service: OK
-- Windows -> Docker published port: KO
-- WSL -> Docker published port: OK
-- WSL -> Windows localhost service: OK
-- WSL -> Windows host IP service: KO
-- Container -> native WSL2 service: OK
-- Container -> Windows service: KO
+## Practical Conclusions
 
-Evidence:
-- Native WSL2 HTTP server during test: wsl sh -lc "python3 -m http.server 4200 --bind 0.0.0.0"
-- Windows -> WSL native: curl.exe --connect-timeout 8 --max-time 20 http://localhost:4200
-- Observed response: Python directory listing page
-- Windows -> Docker published port: curl.exe --connect-timeout 8 --max-time 20 http://localhost:8080
-- Observed response: connection timeout or failure
-- WSL -> Docker published port: wsl curl --connect-timeout 8 --max-time 20 http://localhost:8080
-- Observed response: default nginx welcome page
-- WSL -> Windows localhost service: wsl curl -vk --connect-timeout 8 --max-time 20 https://localhost:8443
-- Observed response: HTTP 401 Unauthorized
-- WSL -> Windows service via <windows-ip-a>:8443
-- Observed response: connection refused
-- Container -> WSL native via <wsl-ip>:4200
-- Observed response: HTTP 200 OK from the Python server
-- Container -> Windows service via <windows-ip-a>:8443
-- Observed response: connection refused
-- Container -> Windows service via <windows-ip-b>:8443
-- Observed response: connection refused
-- Container -> host.docker.internal:8443
-- Observed response: host resolution failed or timed out
-```
+| Question | Answer |
+|---|---|
+| What solves native Windows <-> WSL2 communication best? | `mirrored`, as long as Docker published ports are not part of the requirement |
+| What solves Windows -> Docker in WSL2 best? | `NAT + localhostForwarding=true` |
+| What solves bridge container -> Windows service in an enterprise-constrained setup? | `NAT + tunnel + socat relay + proxy bypass` |
+| What is the main blocker in mirrored for this repository? | Windows can no longer reach Docker published ports |
+| What is the main blocker for containers in enterprise environments? | Corporate proxy interception plus loopback-only listeners |
 
-## Current Conclusions
+## Recommended Positioning For This Repository
 
-### What NAT solves
+| Option | Recommendation | Rationale |
+|---|---|---|
+| NAT | Primary mode | Best overall compatibility with Docker published ports and validated tunnel/relay workaround |
+| NAT + tunnel + relay | Supported enterprise workaround | Only validated bridge-container path to Windows dependency under corporate restrictions |
+| Mirrored | Documented limitation / niche mode | Good for native flows, but not for the repository's main containerized use case |
+| Mirrored + host-network container | Tactical workaround | Useful for isolated cases, not a general repository-wide operating mode |
 
-- Windows can reach published Docker ports in WSL2
-- WSL2 can reach published Docker ports in WSL2
+## Detailed Directional Matrix
 
-### What NAT does not solve in the constrained setup
+This section answers the question in the most literal way: who can reach whom, through which form of address, and in which validated configuration.
 
-- WSL2 cannot reach the Windows-hosted service on `8443` using `localhost`
-- WSL2 also cannot reach the same Windows-hosted service through the tested Windows host IP path
-- Containers inside WSL2 also fail to reach that Windows-hosted service
+| Source -> Target | Address / Route Tested | NAT | NAT + tunnel | NAT + tunnel + relay | Mirrored | Mirrored + host-network container | Notes |
+|---|---|---|---|---|---|---|---|
+| Windows -> WSL2 native service | `localhost:4200` | `OK` | `OK` | `OK` | `OK` | `OK` | Validated with Python HTTP server in WSL2 |
+| Windows -> WSL2 native service | WSL2 IP | `NR` | `NR` | `NR` | `NR` | `NR` | No explicit validation recorded |
+| Windows -> containerized app in WSL2 | `localhost:8080` / `localhost:8081` published port | `OK` | `OK` | `OK` | `KO` | `KO` | Core mirrored regression validated on two ports |
+| Windows -> containerized app in WSL2 | Container IP directly | `NR` | `NR` | `NR` | `NR` | `NR` | Not part of the recorded campaigns |
+| WSL2 native -> Windows service | `localhost:8443` | `KO` | `OK` via `localhost:18443` | `OK` via `localhost:18443` | `OK` | `OK` | In mirrored, shared loopback works natively |
+| WSL2 native -> Windows service | Windows host IP | `KO` | `NR` | `NR` | `KO` | `KO` | Explicit IP path failed in recorded tests |
+| WSL2 native -> containerized app in WSL2 | `localhost:8080` published port | `OK` | `OK` | `OK` | `OK` | `OK` | Container health remained good in every mode |
+| WSL2 native -> native WSL2 service | `localhost:4200` | `OK` | `OK` | `OK` | `OK` | `OK` | Trivial but validated in mirrored report |
+| Bridge container -> native WSL2 service | WSL2 IP / bridge-visible endpoint | `OK` | `OK` | `OK` | `OK` | `N/A` | Validated on `4200` |
+| Bridge container -> Windows service | Windows/NAT/mirrored host IP | `KO` | `KO` | `NR` | `KO` | `N/A` | Direct route fails in both native modes |
+| Bridge container -> Windows service | `host.docker.internal` | `KO` | `KO` | `NR` | `KO` | `N/A` | Docker Engine in WSL2 did not provide a usable route here |
+| Bridge container -> Windows service | Tunnel endpoint `:18443` | `N/A` | `KO` | `NR` | `KO` | `N/A` | Tunnel listener is loopback-only in WSL2 |
+| Bridge container -> Windows service | Relay endpoint `:28443` | `N/A` | `N/A` | `OK` | `Partial` | `N/A` | In mirrored, TCP succeeded but HTTP failed on Windows hostname restriction |
+| Host-network container -> Windows service | `localhost:8443` | `OK` | `OK` | `OK` | `OK` | `OK` | Behaves like native WSL2 networking |
+| Host-network container -> Windows service | Windows host IP | `NR` | `NR` | `NR` | `KO` | `KO` | Explicit-IP mirrored test failed |
 
-### What mirrored solves
+## Enterprise And Egress Matrix
 
-- Windows can reach native WSL2 services
-- WSL2 can reach the Windows-hosted `8443` service through `localhost`
-- Containers can reach a native WSL2 service through a tested WSL2 IP
+These rows separate generic reachability from enterprise-policy side effects such as proxies, private IP filtering, and hostname restrictions.
 
-### What mirrored breaks in the currently observed setup
+| Flow | NAT | NAT + tunnel | NAT + tunnel + relay | Mirrored | What is actually known |
+|---|---|---|---|---|---|
+| WSL2 native -> Internet | `NR` | `NR` | `NR` | `NR` | Not directly validated in the published reports |
+| WSL2 native -> enterprise network by private IP | `NR` | `NR` | `NR` | `NR` | Not directly validated as a standalone flow |
+| WSL2 native -> Windows-local enterprise dependency | `KO` | `OK` | `OK` | `OK` | This is the central validated business case |
+| Bridge container -> Internet | `NR` | `NR` | `NR` | `NR` | No explicit generic internet probe was recorded |
+| Bridge container -> enterprise proxy | `Conditional` | `Conditional` | `Conditional` | `Conditional` | Proxy variables were injected into containers and traffic attempted to use them |
+| Bridge container -> private RFC1918 address without proxy bypass | `KO` | `KO` | `KO` | `KO` | Observed proxy refusal / 403 on private-IP CONNECT attempts |
+| Bridge container -> private RFC1918 address with proxy bypass | `Conditional` | `Conditional` | `OK` | `Conditional` | Works only when routing exists and `NO_PROXY` / `--noproxy` is managed |
+| Bridge container -> enterprise Windows dependency on `localhost` only | `KO` | `KO` | `OK` | `Partial` | Mirrored direct relay needs Windows service to accept non-`localhost` hostnames |
 
-- Windows can no longer reach published Docker ports in WSL2, even though:
-  - the container is healthy
-  - the port mapping is visible
-  - the service remains reachable from inside WSL2
-- Direct container -> Windows service access still failed on the tested Windows IP paths
+## Interpretation Notes For Enterprise Context
 
-### What the tunnel workaround currently solves
+| Constraint | Effect |
+|---|---|
+| Corporate proxy injected into containers | Private-IP requests may be sent to the proxy instead of directly to WSL2/Windows |
+| `NO_PROXY` missing RFC1918 ranges | Container access to relay or host private IPs fails even when routing is otherwise correct |
+| Windows service bound only to `localhost` | Relay can prove TCP reachability but still fail at HTTP or TLS hostname handling |
+| Linux Docker Engine inside WSL2 | `host.docker.internal` behavior is not the same as Docker Desktop and cannot be assumed |
+| Mirrored loopback path | Great for native Windows <-> WSL2, but it does not preserve Windows -> Docker published ports |
 
-- It restores a working native WSL2 -> Windows service path on `localhost:18443` while staying in NAT mode
+## What Is Still Not Validated
 
-### What the tunnel workaround does not yet solve
+The reports do not yet provide publishable proof for these rows:
 
-- The tested container -> tunneled endpoint routes were not successful on the recorded workstation
+- `WSL2 native -> Internet`
+- `WSL2 native -> enterprise network` as a general capability outside the tested Windows-local service
+- `Bridge container -> Internet`
+- `Windows -> WSL2 by explicit WSL IP`
+- `Windows -> container by direct container IP`
 
-## Why This Matters
-
-These observations suggest that no tested configuration currently solves the full local development problem:
-
-- NAT keeps Windows -> Docker working, but leaves WSL2 and containers unable to consume the Windows-hosted dependency
-- Mirrored fixes the native WSL2 -> Windows localhost path, but breaks Windows -> Docker published ports
-- NAT + tunnel restores the native WSL2 dependency path, but the tested container -> tunnel routes remain unresolved
-
-That gap is the reason this project still exists as a possible workaround.
-
-## Highest-Value Remaining Checks
-
-If the goal is to decide whether this project is worth keeping, the missing validations are not all equal. The checks below have the highest decision value:
-
-1. Repeat the mirrored Windows -> Docker published-port failure with a second trivial container and a second port.
-2. Re-run the NAT + tunnel container path with an intentionally reachable container-facing endpoint instead of only loopback-bound listeners.
-3. Repeat the decisive cases on a second constrained workstation.
-4. Add one realistic service after the trivial fixtures, such as Elasticsearch, only after the simple matrix is stable.
-
-## Suggested Execution Order
-
-Run the remaining checks in this order so each new result meaningfully narrows the decision:
-
-1. NAT baseline: confirm again that `WSL2 -> Windows service` is still `KO` on both `localhost` and host IP.
-2. NAT + tunnel: start `.\wsl-tunnel.ps1 up api` and validate `curl -k https://localhost:18443` from WSL2.
-3. NAT + tunnel: test the container path again, but document exactly which address was used and whether the tunnel listener is reachable outside loopback.
-4. Mirrored: repeat Windows -> Docker published-port tests with a second trivial container and a second port.
-5. Re-run the decisive checks on a second workstation.
-
-## Workstation Record Template
-
-Create one record block per workstation and keep the evidence close to the result.
-
-```text
-Workstation:
-- Name: sanitized workstation label
-- Windows version:
-- WSL version:
-- Docker engine version in WSL:
-- Date:
-
-Configuration:
-- NAT + localhostForwarding=true
-- or mirrored
-- or NAT + tunnel workaround
-
-Flows:
-- Windows -> WSL native: OK / KO / NR / N/A
-- Windows -> Docker published port: OK / KO / NR / N/A
-- WSL -> Docker published port: OK / KO / NR / N/A
-- WSL -> Windows localhost service: OK / KO / NR / N/A
-- WSL -> Windows host IP service: OK / KO / NR / N/A
-- Container -> WSL native: OK / KO / NR / N/A
-- Container -> Windows service: OK / KO / NR / N/A
-- WSL -> Windows service via tunnel endpoint: OK / KO / NR / N/A
-- Container -> tunneled endpoint: OK / KO / NR / N/A
-
-Evidence:
-- command used
-- exact response or exact error
-- Docker port mapping shown
-- if tunnel used: command used to start it and endpoint tested
-```
-
-## Reporting Format
-
-When recording a new workstation or a new configuration, use this format:
-
-```text
-Configuration:
-- NAT + localhostForwarding=true
-- or mirrored
-- or NAT + tunnel workaround
-
-Flows:
-- Windows -> WSL native: OK / KO / NR / N/A
-- Windows -> Docker published port: OK / KO / NR / N/A
-- WSL -> Docker published port: OK / KO / NR / N/A
-- WSL -> Windows localhost service: OK / KO / NR / N/A
-- WSL -> Windows host IP service: OK / KO / NR / N/A
-- Container -> WSL native: OK / KO / NR / N/A
-- Container -> Windows service: OK / KO / NR / N/A
-- WSL -> Windows service via tunnel endpoint: OK / KO / NR / N/A
-- Container -> tunneled endpoint: OK / KO / NR / N/A
-
-Evidence:
-- command used
-- exact error or response
-- port mapping shown by Docker
-- if tunnel used: command used to start it and endpoint tested
-```
+Those should stay marked `NR` until a dedicated test report records exact commands and outputs.
