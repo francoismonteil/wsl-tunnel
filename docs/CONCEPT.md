@@ -1,5 +1,9 @@
 # Concept
 
+This document belongs to the "responses explored" part of the repository.
+It compares candidate response shapes for mixed-mode Windows + WSL2 + Docker
+Engine constraints; it is not a blanket recommendation for the tunnel workflow.
+
 ## Why This Project Exists
 
 The original question is simple:
@@ -29,7 +33,7 @@ It is closer to:
 
 - "No single built-in networking mode may satisfy all required local development flows at once."
 
-## Why A Targeted Tunnel Can Help
+## One Targeted Response: A Tunnel
 
 When the missing path is:
 
@@ -48,8 +52,8 @@ port, even when the native network mode is not sufficient for that specific flow
 
 This repository does not claim that a tunnel should be the first answer to every
 mixed-mode problem. It is one targeted mechanism included for cases where a
-precise dependency path remains uncovered after the broader mode and architecture
-tradeoffs have been evaluated.
+precise dependency path remains uncovered after broader mode, proxy, and
+architecture tradeoffs have been evaluated.
 
 ## Why This Project Uses A Guided CLI
 

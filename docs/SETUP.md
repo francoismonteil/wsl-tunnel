@@ -3,6 +3,9 @@
 This guide covers the targeted tunnel component included in the repository's
 broader mixed-mode Windows + WSL2 + Docker investigation.
 
+It is not the repository-wide starting point. Use the diagnostic and validation
+matrix first to decide whether this component applies to your workstation.
+
 ## Prerequisites
 
 ### Windows

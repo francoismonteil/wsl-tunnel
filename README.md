@@ -1,86 +1,86 @@
-# WSL Tunnel
+# Mixed-Mode Windows + WSL2 + Docker Engine Connectivity
 
-Guided SSH reverse tunnels for development environments where standard WSL2 networking modes do not cover every required flow.
+Repository of investigation and qualification for mixed-mode Windows + WSL2 +
+Docker Engine development, including a targeted workaround when a specific flow
+remains unsupported.
 
-## Problem Statement
+## Problem This Repository Addresses
 
-On constrained workstations, there may be no single WSL2 networking mode that makes all local development paths work at the same time.
+On some constrained workstations, `NAT` and `mirrored` do not fail in the same
+place.
 
-Based on the validation matrix in this repository:
+The validated problem in this repository is that:
 
-- NAT can preserve Windows -> Docker published ports
-- but NAT may still leave WSL2 and its containers unable to reach Windows-hosted services
-- mirrored mode can improve native Windows <-> WSL2 communication
-- but mirrored mode can also break Windows -> Docker published ports
+- `NAT` can preserve `Windows -> Docker published port`
+- but `NAT` may still leave `WSL2 -> Windows localhost` unavailable
+- `mirrored` can improve native `Windows <-> WSL2` communication
+- but `mirrored` can also break `Windows -> Docker published port`
 
-That means teams can end up in an uncomfortable middle ground:
+That creates a mixed-mode gap where:
 
-- native WSL2 services work
-- some container flows work
-- but a critical dependency hosted on Windows still remains unreachable from WSL2 or from containers
+- Windows can still reach some WSL2 or Docker workloads
+- native WSL2 can still reach some local services
+- but one required dependency path remains uncovered
 
-This project exists as a practical workaround for that gap.
+## When Not To Use This Repository
 
-## Current Status
+Do not treat this repository as the default answer if native WSL2 networking
+already covers your required development flows.
 
-The repository now has a candidate solution with encouraging evidence:
+If your environment already gives you:
 
-- `NAT + tunnel` restores the native `WSL2 -> Windows` dependency path
-- adding a relay in WSL2 makes the tunneled endpoint reachable from bridge-mode containers
-- direct RFC1918 IP access appears to work better than hostname-based access in constrained proxy environments
+- stable `Windows -> Docker published port`
+- stable `WSL2 -> Windows` access for the dependencies you need
+- no bridge-container gap that matters to your workflow
 
-What is already supported by evidence:
+then this repository is probably not the right starting point.
 
-- the routing path is validated end to end for the current candidate setup
-- the candidate solution appears repeatable across multiple sessions on the same constrained workstation
+## Start Here: Qualify The Workstation First
 
-What is still pending:
+If you are here because `NAT` and `mirrored` each solve only part of your flows,
+start with qualification before adopting any workaround.
 
-- full application-layer confirmation with a real Windows HTTPS service behind the route
-- confirmation on a second constrained workstation before making broader claims
+- [docs/ENTERPRISE-MIXED-MODE-WORKSTATION-DIAGNOSTIC.md](docs/ENTERPRISE-MIXED-MODE-WORKSTATION-DIAGNOSTIC.md) — diagnostic frame for deciding whether your workstation appears to match the studied mixed-mode profile
+- [docs/VALIDATION-MATRIX.md](docs/VALIDATION-MATRIX.md) — concrete view of which mechanisms enable which flows
+- [docs/README.md](docs/README.md) — documentation index grouped by intent
 
-## What This Tool Is
+The repository should be read as a conditional solution with qualification
+required, not as a universal tunnel recipe.
 
-`wsl-tunnel.ps1` is a guided PowerShell CLI that opens explicit SSH reverse tunnels from Windows to WSL2 so a Windows-hosted service can be consumed from WSL2 or from workloads running inside WSL2.
+## Responses Explored In This Repository
 
-Instead of asking developers to remember raw SSH syntax and port mappings, the tool uses a versioned catalog of named services.
+This repository does not assume that one answer fits every workstation.
 
-## When This Is Useful
+The response space explored here includes:
 
-Use this project when:
+- `NAT` as the primary mode when Windows must keep reaching Docker published ports
+- `mirrored` when native Windows/WSL2 loopback ergonomics matter more than Docker published-port behavior
+- host-network containers for narrow single-container cases
+- relay exposure from WSL2 to bridge containers
+- SSH reverse tunnels for specific `WSL2 -> Windows` gaps
+- proxy handling and `NO_PROXY` strategy for private-IP traffic
+- doctrine simplification or component relocation when reducing inter-zone flows is the better answer
 
-- WSL2 cannot reliably reach a Windows-hosted dependency
-- containers inside WSL2 cannot reliably reach a Windows-hosted dependency
-- switching between NAT and mirrored mode only moves the breakage around
-- you want a visible, reversible workaround that developers can operate safely
+These responses are documented so they can be compared, not because they should
+all be adopted.
 
-Do not use this as the first answer if your environment already works with native WSL2 networking.
+## Targeted Workaround Under Evaluation
 
-## Evidence First
+One targeted workaround in this repository is `wsl-tunnel.ps1`.
 
-Before adopting the workaround, validate your workstation behavior with:
+It is relevant only when:
 
-- [docs/VALIDATION-PLAN.md](docs/VALIDATION-PLAN.md)
-- [docs/SOLUTION-PLAN.md](docs/SOLUTION-PLAN.md)
-- [docs/CANDIDATE-SOLUTION-VALIDATION-PLAN.md](docs/CANDIDATE-SOLUTION-VALIDATION-PLAN.md)
-- [docs/VALIDATION-MATRIX.md](docs/VALIDATION-MATRIX.md)
-- [docs/LOCAL-PRACTICAL-TESTS.md](docs/LOCAL-PRACTICAL-TESTS.md)
-- [docs/LOCAL-PRACTICAL-TEST-REPORT.md](docs/LOCAL-PRACTICAL-TEST-REPORT.md)
-- [docs/VALIDATION-REPORT-2026-04-05.md](docs/VALIDATION-REPORT-2026-04-05.md)
-- [docs/SOLUTION-PLAN-REPORT-2026-04-05.md](docs/SOLUTION-PLAN-REPORT-2026-04-05.md)
-- [docs/CANDIDATE-SOLUTION-VALIDATION-REPORT-2026-04-06.md](docs/CANDIDATE-SOLUTION-VALIDATION-REPORT-2026-04-06.md)
+- a specific Windows-hosted dependency still cannot be consumed from WSL2
+- native networking mode selection alone does not cover the required flow
+- an explicit, reversible, developer-operated workaround is acceptable
 
-That document captures:
+`wsl-tunnel.ps1` is therefore a compatible response for a narrow unsupported
+path, not the identity of the repository as a whole.
 
-- the broader test campaign
-- the current solution search
-- the final validation path for the current candidate solution
-- tested configurations
-- communication paths
-- observed limitations
-- remaining checks
+## Quickstart For The Targeted Tunnel Component
 
-## Quickstart
+If your workstation appears to match the studied profile and you need the
+targeted workaround under evaluation:
 
 1. Verify Windows can reach WSL over SSH:
 
@@ -119,18 +119,9 @@ That document captures:
    .\wsl-tunnel.ps1 down api
    ```
 
-## Interactive Mode
+## What The Targeted Tool Component Does
 
-When you run `.\wsl-tunnel.ps1 up` in a real PowerShell console:
-
-- `Up` / `Down` moves the cursor
-- `Space` toggles a checkbox
-- `Enter` confirms the current selection
-- `Esc` cancels
-
-You can select several services and start them in one pass.
-
-## What the Tool Does
+The tunnel component:
 
 - reads `catalog/tunnels.json`
 - validates that the Windows service is actually listening
@@ -141,27 +132,15 @@ You can select several services and start them in one pass.
 
 ## Repository Layout
 
-- `wsl-tunnel.ps1` — guided CLI entrypoint
+- `docs/README.md` — documentation index by intent
+- `docs/ENTERPRISE-MIXED-MODE-WORKSTATION-DIAGNOSTIC.md` — qualification frame for mixed-mode enterprise workstations
+- `docs/VALIDATION-MATRIX.md` — validated flows, mechanisms, and limits
+- `docs/CONCEPT.md` — explored response space and tradeoffs
+- `docs/SETUP.md` — setup for the targeted tunnel component
+- `docs/ARCHITECTURE.md` — internal model of the targeted tunnel component
+- `docs/TROUBLESHOOTING.md` — recovery for the targeted tunnel component
+- `wsl-tunnel.ps1` — guided PowerShell CLI for the targeted SSH reverse-tunnel workflow
 - `catalog/tunnels.json` — versioned service catalog
-- `docs/` — setup, architecture, concept, troubleshooting, and validation matrix
-- `examples/` — usage examples
-- `tests/test-tunnel.ps1` — fixture-based validation for the CLI
-
-## Documentation
-
-- [docs/SETUP.md](docs/SETUP.md) — installation and day-1 usage
-- [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) — failure diagnosis and recovery
-- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — runtime model and state discovery
-- [docs/CONCEPT.md](docs/CONCEPT.md) — network rationale and tradeoffs
-- [docs/VALIDATION-PLAN.md](docs/VALIDATION-PLAN.md) — broader validation campaign for representative workstation testing
-- [docs/SOLUTION-PLAN.md](docs/SOLUTION-PLAN.md) — experiment plan for turning the validated limitation into a practical solution
-- [docs/CANDIDATE-SOLUTION-VALIDATION-PLAN.md](docs/CANDIDATE-SOLUTION-VALIDATION-PLAN.md) — acceptance plan for the current relay + tunnel candidate solution
-- [docs/VALIDATION-MATRIX.md](docs/VALIDATION-MATRIX.md) — tested configurations, flows, and observed limitations
-- [docs/LOCAL-PRACTICAL-TESTS.md](docs/LOCAL-PRACTICAL-TESTS.md) — step-by-step validation protocol for a real workstation
-- [docs/LOCAL-PRACTICAL-TEST-REPORT.md](docs/LOCAL-PRACTICAL-TEST-REPORT.md) — sanitized field report from one constrained workstation
-- [docs/VALIDATION-REPORT-2026-04-05.md](docs/VALIDATION-REPORT-2026-04-05.md) — detailed sanitized Campaign A report tied to the validation plan
-- [docs/SOLUTION-PLAN-REPORT-2026-04-05.md](docs/SOLUTION-PLAN-REPORT-2026-04-05.md) — sanitized execution report for the first solution-focused campaign
-- [docs/CANDIDATE-SOLUTION-VALIDATION-REPORT-2026-04-06.md](docs/CANDIDATE-SOLUTION-VALIDATION-REPORT-2026-04-06.md) — sanitized report showing the candidate solution validated at routing level under managed proxy conditions
 
 ## License
 
