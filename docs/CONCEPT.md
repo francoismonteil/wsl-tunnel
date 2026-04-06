@@ -8,6 +8,10 @@ How do developers running services and containers inside WSL2 consume dependenci
 
 The tricky part is that WSL2 networking modes can improve one flow while degrading another.
 
+This repository therefore treats the subject first as a mixed-mode Windows +
+WSL2 + Docker Engine investigation, and only secondarily as a tunnel workflow
+for one targeted unsupported path.
+
 ## What The Validation Shows
 
 The validation matrix in this repository shows a pattern that can happen on constrained workstations:
@@ -25,13 +29,13 @@ It is closer to:
 
 - "No single built-in networking mode may satisfy all required local development flows at once."
 
-## Why A Tunnel Helps
+## Why A Targeted Tunnel Can Help
 
 When the missing path is:
 
 - WSL2 or a container inside WSL2 needs to call a service hosted on Windows
 
-an SSH reverse tunnel gives an explicit fallback:
+an SSH reverse tunnel can provide one explicit fallback:
 
 ```text
 Windows -> WSL2 via SSH
@@ -39,7 +43,13 @@ creates
 WSL localhost:<wslPort> -> Windows localhost:<windowsPort>
 ```
 
-That lets code inside WSL2 consume a Windows dependency through a stable local port, even when the native network mode is not sufficient.
+That lets code inside WSL2 consume a Windows dependency through a stable local
+port, even when the native network mode is not sufficient for that specific flow.
+
+This repository does not claim that a tunnel should be the first answer to every
+mixed-mode problem. It is one targeted mechanism included for cases where a
+precise dependency path remains uncovered after the broader mode and architecture
+tradeoffs have been evaluated.
 
 ## Why This Project Uses A Guided CLI
 
@@ -50,7 +60,8 @@ The tunnel itself is not novel. The difficulty is operational:
 - developers do not know which tunnel is active
 - multi-tunnel setups become confusing very quickly
 
-So this project wraps the workaround in a guided CLI and a versioned service catalog.
+So this repository includes a guided CLI and a versioned service catalog for that
+targeted workaround.
 
 ## What This Project Is Not
 
@@ -58,7 +69,7 @@ This is not a replacement for native WSL2 networking when native networking alre
 
 This is also not a production service mesh or a high-throughput proxy.
 
-It is a local-development workaround for cases where:
+It includes a local-development workaround for cases where:
 
 - the built-in networking options are partially helpful
 - but still leave an important dependency path broken

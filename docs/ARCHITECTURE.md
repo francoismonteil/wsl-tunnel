@@ -2,7 +2,12 @@
 
 ## High-Level Role
 
-The tool sits above the raw SSH command line and provides a guided way to expose Windows-hosted services inside WSL2.
+This document describes the targeted tunnel component inside the repository's
+broader mixed-mode Windows + WSL2 + Docker investigation.
+
+The tool sits above the raw SSH command line and provides a guided way to expose
+Windows-hosted services inside WSL2 when that specific flow remains unsupported
+by the chosen native mode.
 
 It is designed for a specific local-development gap:
 

@@ -1,5 +1,8 @@
 # Setup Guide
 
+This guide covers the targeted tunnel component included in the repository's
+broader mixed-mode Windows + WSL2 + Docker investigation.
+
 ## Prerequisites
 
 ### Windows
