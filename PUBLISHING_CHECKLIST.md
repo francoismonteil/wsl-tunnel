@@ -11,6 +11,7 @@ Use this folder as the source for the public repository.
 - `docs/LOCAL-PRACTICAL-TEST-REPORT.md` contains sanitized evidence only, with no raw workstation names, emails, or internal IP addresses
 - dated validation reports in `docs/VALIDATION-REPORT-*.md` are sanitized and use placeholders for internal addresses and proxy hosts
 - dated solution reports in `docs/SOLUTION-PLAN-REPORT-*.md` are sanitized and use placeholders for internal addresses, proxy hosts, and local paths
+- dated candidate-solution reports in `docs/CANDIDATE-SOLUTION-VALIDATION-REPORT-*.md` are sanitized and clearly distinguish routing validation from full application-layer validation
 - `examples/` use generic endpoints and payloads
 - `local-only-*.patch` artifacts are ignored and not staged
 - `tests/` pass from inside this folder

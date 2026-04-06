@@ -21,6 +21,24 @@ That means teams can end up in an uncomfortable middle ground:
 
 This project exists as a practical workaround for that gap.
 
+## Current Status
+
+The repository now has a candidate solution with encouraging evidence:
+
+- `NAT + tunnel` restores the native `WSL2 -> Windows` dependency path
+- adding a relay in WSL2 makes the tunneled endpoint reachable from bridge-mode containers
+- direct RFC1918 IP access appears to work better than hostname-based access in constrained proxy environments
+
+What is already supported by evidence:
+
+- the routing path is validated end to end for the current candidate setup
+- the candidate solution appears repeatable across multiple sessions on the same constrained workstation
+
+What is still pending:
+
+- full application-layer confirmation with a real Windows HTTPS service behind the route
+- confirmation on a second constrained workstation before making broader claims
+
 ## What This Tool Is
 
 `wsl-tunnel.ps1` is a guided PowerShell CLI that opens explicit SSH reverse tunnels from Windows to WSL2 so a Windows-hosted service can be consumed from WSL2 or from workloads running inside WSL2.
@@ -50,6 +68,7 @@ Before adopting the workaround, validate your workstation behavior with:
 - [docs/LOCAL-PRACTICAL-TEST-REPORT.md](docs/LOCAL-PRACTICAL-TEST-REPORT.md)
 - [docs/VALIDATION-REPORT-2026-04-05.md](docs/VALIDATION-REPORT-2026-04-05.md)
 - [docs/SOLUTION-PLAN-REPORT-2026-04-05.md](docs/SOLUTION-PLAN-REPORT-2026-04-05.md)
+- [docs/CANDIDATE-SOLUTION-VALIDATION-REPORT-2026-04-06.md](docs/CANDIDATE-SOLUTION-VALIDATION-REPORT-2026-04-06.md)
 
 That document captures:
 
@@ -142,6 +161,7 @@ You can select several services and start them in one pass.
 - [docs/LOCAL-PRACTICAL-TEST-REPORT.md](docs/LOCAL-PRACTICAL-TEST-REPORT.md) — sanitized field report from one constrained workstation
 - [docs/VALIDATION-REPORT-2026-04-05.md](docs/VALIDATION-REPORT-2026-04-05.md) — detailed sanitized Campaign A report tied to the validation plan
 - [docs/SOLUTION-PLAN-REPORT-2026-04-05.md](docs/SOLUTION-PLAN-REPORT-2026-04-05.md) — sanitized execution report for the first solution-focused campaign
+- [docs/CANDIDATE-SOLUTION-VALIDATION-REPORT-2026-04-06.md](docs/CANDIDATE-SOLUTION-VALIDATION-REPORT-2026-04-06.md) — sanitized report showing the candidate solution validated at routing level under managed proxy conditions
 
 ## License
 
