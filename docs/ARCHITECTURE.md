@@ -18,6 +18,9 @@ It is designed for a specific local-development gap:
 - WSL2 networking mode is not enough on its own
 - developers still need a stable path from WSL2 to Windows-hosted services
 
+This is not the architecture of the repository's overall doctrine for mixed-mode
+development. It is only the internal model of one conditional component.
+
 ## CLI Contract
 
 The developer-facing contract is a single CLI:
@@ -144,3 +147,11 @@ Shows active tunnels globally or details for one service.
 - the hard networking details stay hidden
 - multiple tunnels stay distinguishable by service name
 - the state is easy to inspect and easy to reverse
+
+## What This Architecture Does Not Claim
+
+This document does not claim that:
+
+- the tunnel is the primary repository entry point
+- the tunnel alone solves bridge-container access
+- the tunnel should replace workstation qualification

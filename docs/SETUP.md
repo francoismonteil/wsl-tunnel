@@ -6,6 +6,12 @@ broader mixed-mode Windows + WSL2 + Docker investigation.
 It is not the repository-wide starting point. Use the diagnostic and validation
 matrix first to decide whether this component applies to your workstation.
 
+Use this guide only if:
+
+- your workstation has already been qualified against the studied profile
+- the chosen response path includes the tunnel component
+- the remaining uncovered flow is a specific `WSL2 -> Windows` dependency path
+
 ## Prerequisites
 
 ### Windows
@@ -140,6 +146,16 @@ Each service has one managed active tunnel at a time, identified by its catalog 
 ## Catalog Ownership
 
 The team owns `catalog/tunnels.json`. Developers should not invent ports locally. Add or change mappings in the catalog so everyone uses the same names and ports.
+
+## What This Guide Does Not Decide
+
+This guide does not decide:
+
+- whether the tunnel should be used on a given workstation
+- whether doctrine simplification would be a better answer
+- whether a container-facing relay is also required
+
+Those decisions belong to the diagnostic, validation, and response documents.
 
 ---
 

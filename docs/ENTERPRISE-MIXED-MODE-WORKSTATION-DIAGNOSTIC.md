@@ -25,6 +25,12 @@ Its purpose is simpler:
 In other words, this document addresses workstation context first.  
 Solution design comes afterward.
 
+It should let a reader answer three questions quickly:
+
+1. am I in the right repository
+2. does my workstation resemble the studied profile
+3. if yes, which response category is worth exploring next
+
 ---
 
 ## 2. Working Hypothesis
@@ -60,6 +66,9 @@ This document does not claim any of the following:
 
 It only provides a diagnostic frame for identifying a recurring constraint
 profile in mixed `Windows + WSL2 + Docker Engine` development.
+
+It does not provide proof that prevalence claims are justified beyond the
+workstations actually compared with the same grid.
 
 ---
 
@@ -258,6 +267,9 @@ than default assumptions.
 
 This section lets another developer verify whether their workstation has the same
 constraints.
+
+If the workstation does not resemble the studied profile after this section, the
+reader should stop here rather than continue into tool implementation docs.
 
 ### 8.1 Basic Inventory
 
@@ -468,6 +480,9 @@ If the goal is to show that this is not just one workstation behaving badly, the
 next step is additional multi-workstation comparison rather than further wording
 changes alone.
 
+Use [MULTI-WORKSTATION-COMPARISON-KIT.md](MULTI-WORKSTATION-COMPARISON-KIT.md)
+to keep that next step consistent.
+
 ---
 
 ## 11. What The Document Recommends Next
@@ -485,6 +500,19 @@ Before standardizing a tool, the team should define a simple doctrine:
 - which inter-zone flows are officially supported
 - which standard mechanism covers each supported flow
 - which cases are explicitly forbidden because they are too fragile
+
+For this repository, the minimal doctrine can be stated more concretely:
+
+- the repository helps qualify a mixed-mode workstation where `NAT` and
+  `mirrored` do not cover the same development flows
+- the repository compares responses for Windows flows, native WSL2 flows, and
+  bridge-container flows
+- the repository does not claim to solve every WSL2 issue or establish a
+  universal team standard
+- a tool such as `wsl-tunnel` is relevant only after qualification, and only if
+  a specific `WSL2 -> Windows` dependency path remains uncovered
+- stronger language about prevalence or typicality should wait for at least one
+  additional workstation compared with the same packet
 
 If that doctrine makes the problem disappear, that is a good outcome.  
 If it confirms a targeted need, then a tool such as `wsl-tunnel` can become

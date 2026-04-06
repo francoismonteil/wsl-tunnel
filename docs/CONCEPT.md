@@ -4,6 +4,13 @@ This document belongs to the "responses explored" part of the repository.
 It compares candidate response shapes for mixed-mode Windows + WSL2 + Docker
 Engine constraints; it is not a blanket recommendation for the tunnel workflow.
 
+Read this document only after:
+
+- qualifying that the workstation resembles the studied profile
+- reviewing the validation matrix
+
+This document explores response shapes. It does not decide doctrine by itself.
+
 ## Why This Project Exists
 
 The original question is simple:
@@ -37,7 +44,7 @@ It is closer to:
 
 When the missing path is:
 
-- WSL2 or a container inside WSL2 needs to call a service hosted on Windows
+- WSL2 needs to call a service hosted on Windows
 
 an SSH reverse tunnel can provide one explicit fallback:
 
@@ -47,13 +54,17 @@ creates
 WSL localhost:<wslPort> -> Windows localhost:<windowsPort>
 ```
 
-That lets code inside WSL2 consume a Windows dependency through a stable local
-port, even when the native network mode is not sufficient for that specific flow.
+That lets native code inside WSL2 consume a Windows dependency through a stable
+local port, even when the native network mode is not sufficient for that
+specific flow.
 
 This repository does not claim that a tunnel should be the first answer to every
 mixed-mode problem. It is one targeted mechanism included for cases where a
 precise dependency path remains uncovered after broader mode, proxy, and
 architecture tradeoffs have been evaluated.
+
+If the remaining problem is actually a bridge-container path, a tunnel may be
+only one part of the answer or may be the wrong answer entirely.
 
 ## Why This Project Uses A Guided CLI
 
@@ -72,6 +83,9 @@ targeted workaround.
 This is not a replacement for native WSL2 networking when native networking already solves the problem.
 
 This is also not a production service mesh or a high-throughput proxy.
+
+It is also not a universal doctrine for where every development component should
+live.
 
 It includes a local-development workaround for cases where:
 

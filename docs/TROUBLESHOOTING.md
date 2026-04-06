@@ -1,5 +1,10 @@
 # Troubleshooting
 
+This guide is only for the targeted tunnel component.
+
+If you have not already qualified the workstation and selected the tunnel as the
+response path, go back to the diagnostic and validation documents first.
+
 ## Common Problems
 
 ### `up <service>` says the Windows service is not available
@@ -158,6 +163,9 @@ What to do:
 4. If it fails, verify `ssh wsl-localhost`
 5. Run `.\wsl-tunnel.ps1 status <service>`
 6. Test from WSL with the command shown by the tool
+
+This flow helps only after the tunnel path has already been selected. It does
+not determine whether the tunnel should have been selected in the first place.
 
 ## Deep Checks
 
